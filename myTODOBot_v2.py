@@ -625,7 +625,6 @@ def echo(message):
                              reply_markup=markup)
     elif rounds > 0:
         stone(message)
-#        rounds, user_win, computer_win = list(map(get_attr, [message.from_user.id]*3, [2, 3, 4]))
         rounds, user_win, computer_win = [get_attr(message.from_user.id, i) for i in [2, 3, 4]]
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         but1 = types.KeyboardButton("Сыграть ещё")
@@ -646,7 +645,6 @@ def echo(message):
             text = "Раунд №" + rounds + "\nСделайте свой выбор:\n1 - КАМЕНЬ\n2 - НОЖНИЦЫ\n3 - БУМАГА\n"
             bot.send_message(message.chat.id, text, reply_markup=markup)
     else:
-#        bot.send_message(message.chat.id, "~strikethrough~ *жирный* _ita\nlic_ __подчёркнутый__  ||spoiler|| простой ```моноширинный```", parse_mode='MarkdownV2')
         bot.send_message(message.chat.id, message.text)
 
 
