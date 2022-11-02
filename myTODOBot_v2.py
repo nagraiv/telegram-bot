@@ -219,7 +219,7 @@ def write_tasks(user_id, tasks):
     change_attr(user_id, 8, my_string)
 
 
-token = '5368592214:AAFi3lYagLygS8m1Zyiy2YaOO758c1dneMM'
+token = ''
 
 bot = telebot.TeleBot(token)
 
