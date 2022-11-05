@@ -1,5 +1,6 @@
 import telebot
 from telebot import types
+from datetime import datetime
 import random
 
 HELP = """
@@ -24,27 +25,30 @@ WORDS = ['виноград', 'апельсин', 'клубника', 'слива
          'клюква']
 
 POOL = [1, 2, 4]
-THINGS = ['', 'КАМЕНЬ', 'НОЖНИЦЫ', 'БУМАГА', 'БУМАГА']
+THINGS = ['', '  КАМЕНЬ  ', 'НОЖНИЦЫ', '  БУМАГА  ', '  БУМАГА  ']
 WIN = {-1, -2, 3}
 FAIL = {1, 2, -3}
 
 
 def words(message):
-    chances = int(get_attr(message.from_user.id, 5))
-    word = get_attr(message.from_user.id, 6)
+    chances, word = [get_attr(message.from_user.id, x) for x in [5, 6]]
     guessed = get_guessed(message.from_user.id)
     letter = message.text.lower()
     if not letter.isalpha():
         bot.send_message(message.chat.id,
-                         "Вводить можно только буквы!\nОсталось " + str(chances) + " попыток\nВведите букву:")
+                         f"Вводить можно только буквы!\nОсталось {chances} попыток.\nВведите букву:")
         return
     elif len(letter) > 1:
         bot.send_message(message.chat.id,
-                         "Ввести можно только 1 букву!\nОсталось " + str(chances) + " попыток\nВведите букву:")
+                         f"Ввести можно только 1 букву!\nОсталось {chances} попыток.\nВведите букву:")
         return
     elif letter in guessed:
         bot.send_message(message.chat.id,
-                         "Вы уже угадали эту букву!\nОсталось " + str(chances) + " попыток\nВведите букву:")
+                         f"Вы уже угадали эту букву!\nОсталось {chances} попыток.\nВведите букву:")
+        return
+    elif letter not in 'абвгдеёжзийклмнопрстуфхцчшщьыъэюя':
+        bot.send_message(message.chat.id,
+                         f"Введите РУССКУЮ букву!\nОсталось {chances} попыток.\nВведите букву:")
         return
     if letter in word:
         text = "Буква угадана!\n"
@@ -54,12 +58,12 @@ def words(message):
     else:
         text = "Буква не угадана!\n"
     for l in guessed:
-        text = text + l + " "
-    if chances > 0 and guessed != list(word):
-        text += "\nОсталось " + str(chances) + " попыток"
-        text += "\nВведите букву:"
+        text += l + " "
+    if int(chances) > 0 and guessed != list(word):
+        text += f"\nОсталось {chances} попыток.\nВведите букву:"
     write_guessed(message.from_user.id, guessed)
-    bot.send_message(message.chat.id, text)
+    markup = types.ReplyKeyboardRemove()
+    bot.send_message(message.chat.id, text, reply_markup=markup)
 
 
 def stone(message):
@@ -67,18 +71,18 @@ def stone(message):
     user_win = int(get_attr(message.from_user.id, 3))
     computer_win = int(get_attr(message.from_user.id, 4))
     rounds += 1
-    if message.text != '1' and message.text != '2' and message.text != '3' and message.text != 'КАМЕНЬ' and message.text != 'НОЖНИЦЫ' and message.text != 'БУМАГА':
+    if message.text.upper() not in {'1', '2', '3', 'КАМЕНЬ', 'НОЖНИЦЫ', 'БУМАГА'}:
         bot.send_message(message.chat.id, "Можно вводить только КАМЕНЬ, НОЖНИЦЫ, БУМАГА или просто цифры 1, 2, 3")
     else:
         formated_choice = 0
-        if message.text == '1' or message.text == 'КАМЕНЬ':
+        if message.text == '1' or message.text.upper() == 'КАМЕНЬ':
             formated_choice = 1
-        if message.text == '2' or message.text == 'НОЖНИЦЫ':
+        if message.text == '2' or message.text.upper() == 'НОЖНИЦЫ':
             formated_choice = 2
-        if message.text == '3' or message.text == 'БУМАГА':
+        if message.text == '3' or message.text.upper() == 'БУМАГА':
             formated_choice = 4
         computer_choice = random.choice(POOL)
-        text = "Ваш выбор    Выбор компьютера\n  " + THINGS[formated_choice] + "      " + THINGS[computer_choice]
+        text = f"Ваш выбор    Выбор компьютера\n{THINGS[formated_choice]}          {THINGS[computer_choice]}"
         result = formated_choice - computer_choice
         if result == 0:
             text += "\nНичья!"
@@ -90,14 +94,12 @@ def stone(message):
             computer_win += 1
         else:
             text += "\nПроизошла ошибка."
-        text += "\nТекущий счёт " + str(user_win) + ':' + str(computer_win)
-        change_attr(message.from_user.id, 2, str(rounds))
-        change_attr(message.from_user.id, 3, str(user_win))
-        change_attr(message.from_user.id, 4, str(computer_win))
+        text += f"\nТекущий счёт {user_win}:{computer_win}"
+        change_attr(message.from_user.id, [2, 3, 4], [str(rounds), str(user_win), str(computer_win)])
         bot.send_message(message.chat.id, text)
 
 
-# функция возвращает индекс строки файла Bot_cookies.txt, в котором хрянится статус пользователя с переданным user_id
+# функция возвращает индекс строки лог-файла, в котором хрянится статус пользователя с переданным user_id
 # если такого пользователя нет, то возвращает -1
 def find_line(user_id):
     with open('Bot_cookies.txt', 'r', encoding='UTF-8') as f:
@@ -108,29 +110,27 @@ def find_line(user_id):
     return -1
 
 
-# функция возвращает список атрибутов пользователя с идентификатором user_id из файла Bot_cookies.txt
-# если такого пользователя нет, то возвращает пустой список
-def get_line(user_id):
-    with open('Bot_cookies.txt', 'r', encoding='UTF-8') as f:
-        file_data = f.readlines()
-        for index, line in enumerate(file_data):
-            if line.startswith(str(user_id)):
-                return line.split(';')
-    return []
-
-
-# функция возвращает значение атрибута из файла Bot_cookies.txt
+# функция возвращает значение одного атрибута из лог-файла
 def get_attr(user_id, attr_index):
+    index = -1
     with open('Bot_cookies.txt', 'r', encoding='UTF-8') as f:
         file_data = f.readlines()
-        for index, line in enumerate(file_data):
+        for ind, line in enumerate(file_data):
             if line.startswith(str(user_id)):
+                index = ind
                 break
-    cooky = file_data[index].split(';')
+#если вдруг каким-то образом пользователь уклонился от знакомства, то формируем его атрибуты в лог-файле
+    if index == -1:
+        new_line = make_line(user_id)
+        cooky = new_line.split(';')
+        with open('Bot_cookies.txt', 'a', encoding='UTF-8') as f:
+            f.write(new_line)
+    else:
+        cooky = file_data[index].split(';')
     return cooky[attr_index]
 
 
-# в игре СЛОВА угаданные буквы представлены списком, функция получает кусок строки из Bot_cookies.txt и преобразует в список
+# в игре СЛОВА угаданные буквы представлены списком, функция получает кусок строки из лог-файла и преобразует в список
 def get_guessed(user_id):
     cooky = get_attr(user_id, 7)
     guessed = []
@@ -141,7 +141,7 @@ def get_guessed(user_id):
     return guessed
 
 
-# из Bot_cookies.txt извлекаем словарь со списком дел
+# из лог-файла извлекаем словарь со списком дел
 def get_tasks(user_id):
     line = get_attr(user_id, 8).strip('{}')
     if line == '':
@@ -164,50 +164,76 @@ def get_tasks(user_id):
     return tasks
 
 
-# функция меняет значение одного атрибута пользователя в файле Bot_cookies.txt, аргументы - индекс строки,
-# которую следует изменить, порядковый номер атрибута, новое значение атрибута
+#функция формирует строку с атрибутами пользователя, чтобы править формат cookies в одном месте
+def make_line(user_id, name='', rounds='0', user_win='0', computer_win='0', chances='0', word='', guessed='[]', tasks='{}', time=''):
+    if time == '':
+        time = datetime.now()
+    my_list = [str(user_id), name, rounds, user_win, computer_win, chances, word, guessed, tasks, time.strftime('%Y-%m-%d %H:%M:%S'), '\n']
+    line = ';'.join(my_list)
+    return line
+
+
+# функция меняет значение атрибутов пользователя в лог-файле, аргументы - идентификатор пользователя,
+# список порядковых номеров атрибутов, список новых значений атрибутов
 def change_attr(user_id, attr_index, attribute):
+    index = -1
     with open('Bot_cookies.txt', 'r', encoding='UTF-8') as f:
         file_data = f.readlines()
-        for index, line in enumerate(file_data):
+        for ind, line in enumerate(file_data):
             if line.startswith(str(user_id)):
+                index = ind
                 break
-    cooky = line.split(';')
-    cooky[attr_index] = attribute
-    new_line = ''
-    for i in range(len(cooky) - 1):
-        new_line += cooky[i] + ';'
-    new_line += '\n'
-    file_data[index] = new_line
+#если вдруг каким-то образом пользователь уклонился от знакомства, то формируем его атрибуты в лог-файле
+        if index == -1:
+            new_line = make_line(user_id)
+            cooky = new_line.split(';')
+            with open('Bot_cookies.txt', 'a', encoding='UTF-8') as f:
+                f.write(new_line)
+            index = ind + 1
+            file_data.append(new_line)
+        else:
+            cooky = line.split(';')
+#    print(cooky)
+    for number, ind in enumerate(attr_index):
+        cooky[ind] = attribute[number]
+    time = datetime.now()
+    cooky[-2] = time.strftime('%Y-%m-%d %H:%M:%S')
+    my_str = ';'.join(cooky)
+    file_data[index] = my_str
     with open('Bot_cookies.txt', 'w', encoding='UTF-8') as f:
         for line in file_data:
             f.write(line)
 
 
-def change_line(user_attributes):
+def change_line(user_id, new_line):
+    index = -1
     with open('Bot_cookies.txt', 'r', encoding='UTF-8') as f:
         file_data = f.readlines()
-        for index, line in enumerate(file_data):
-            if line.startswith(user_attributes[0]):
+        for ind, line in enumerate(file_data):
+            if line.startswith(str(user_id)):
+                index = ind
                 break
-    user_attributes.append('\n')
-    new_line = ';'.join(user_attributes)
-    file_data[index] = new_line
-    with open('Bot_cookies.txt', 'w', encoding='UTF-8') as f:
-        for line in file_data:
-            f.write(line)
+# если вдруг каким-то образом пользователь уклонился от знакомства, то вместо замены записываем новую строку в лог-файл
+    if index == -1:
+        with open('Bot_cookies.txt', 'a', encoding='UTF-8') as f:
+            f.write(new_line)
+    else:
+        file_data[index] = new_line
+        with open('Bot_cookies.txt', 'w', encoding='UTF-8') as f:
+            for line in file_data:
+                f.write(line)
 
 
-# в игре СЛОВА угаданные буквы представлены списком, функция сохраняет это в Bot_cookies.txt
+# в игре СЛОВА угаданные буквы представлены списком, функция сохраняет это в лог-файл
 def write_guessed(user_id, guessed):
     my_string = '['
     for i in range(len(guessed)):
         my_string += str(guessed[i])
     my_string += ']'
-    change_attr(user_id, 7, my_string)
+    change_attr(user_id, [7], [my_string])
 
 
-# словарь tasks преобразуем в строку, функция сохраняет это в Bot_cookies.txt
+# словарь tasks преобразуем в строку, функция сохраняет это в лог-файл
 def write_tasks(user_id, tasks):
     my_string = '{'
     for date in tasks:
@@ -216,10 +242,10 @@ def write_tasks(user_id, tasks):
             my_string += task + ', '
         my_string += '], '
     my_string += '}'
-    change_attr(user_id, 8, my_string)
+    change_attr(user_id, [8], [my_string])
 
 
-token = ''
+token = '5368592214:AAFi3lYagLygS8m1Zyiy2YaOO758c1dneMM'
 
 bot = telebot.TeleBot(token)
 
@@ -258,13 +284,17 @@ def get_name(message):
     elif message.text == "Да,\nсейчас напишу новое имя":
         bot.send_message(message.chat.id, "Внимательно слушаю...")
         bot.register_next_step_handler(message, get_name)
+    elif message.text.startswith('/'):
+        bot.send_message(message.chat.id, "Ожидается имя, а не команда. Повторите ввод:")
+        bot.register_next_step_handler(message, get_name)
     else:
-        name = message.text
+# если пользователь напишет имя с переносом строки, то символ \n нарушит структуру лог-файла, поэтому берём только первую строку
+        name = message.text.split('\n')[0]
         if find_line(message.from_user.id) == -1:
             with open('Bot_cookies.txt', 'a', encoding='UTF-8') as f:
-                f.write(str(message.from_user.id) + ';' + name + ';0;0;0;0;;[];{};\n')
+                f.write(make_line(message.from_user.id, name))
         else:
-            change_attr(message.from_user.id, 1, name)
+            change_attr(message.from_user.id, [1], [name])
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         button = types.KeyboardButton("Что ты умеешь?")
         markup.add(button)
@@ -281,7 +311,7 @@ def show_help(message):
     bot.send_message(message.chat.id, "Чем займёмся?", reply_markup=markup)
 
 
-#функция запоминает дату и запрашивает задачу после траектории Добавить задачу -> Сегодня / Завтра / Случайная
+# функция запоминает дату и запрашивает задачу после траектории Добавить задачу -> Сегодня / Завтра / Случайная
 def add_menu(message):
     date = message.text.lower()
     if date == "вернуться в меню":
@@ -297,11 +327,14 @@ def add_menu(message):
         bot.register_next_step_handler(message, ask_task, date)
 
 
-#функция обрабатывает введённую задачу (дата уже есть и передаётся дальше)
+# функция обрабатывает введённую задачу (дата уже есть и передаётся дальше)
 def ask_task(message, date):
     task = message.text.strip()
     if len(task) < 3:
         text = "Задача слишком короткая. Напишите подробнее."
+        bot.register_next_step_handler(message, ask_task, date)
+    elif task.startswith('/'):
+        bot.send_message(message.chat.id, "Ожидается задача, а не команда. Повторите ввод:")
         bot.register_next_step_handler(message, ask_task, date)
     else:
         success = add_todo(message.from_user.id, date, task)
@@ -312,7 +345,7 @@ def ask_task(message, date):
     bot.send_message(message.chat.id, text, reply_markup=menu())
 
 
-#функция добавления задачи на определённую дату
+# функция добавления задачи на определённую дату
 def add_todo(user_id, date, task):
     tasks = get_tasks(user_id)
     if date in tasks:
@@ -325,7 +358,7 @@ def add_todo(user_id, date, task):
     return True
 
 
-#обработчик команды /add <date> <task> - добавить задачу в список
+# обработчик команды /add <date> <task> - добавить задачу в список
 @bot.message_handler(commands=["add", "todo"])
 def add(message):
     command = message.text.split(maxsplit=2)
@@ -345,7 +378,7 @@ def add(message):
     bot.send_message(message.chat.id, text)
 
 
-#функция добавления случайной задачи проверяет, чтобы не было дубликатов
+# функция добавления случайной задачи проверяет, чтобы не было дубликатов
 @bot.message_handler(commands=["random"])
 def random_add(message):
     date = "сегодня"
@@ -358,7 +391,7 @@ def random_add(message):
     bot.send_message(message.chat.id, text)
 
 
-#функция обрабатывает навигацию по кнопкам Вывести список дел -> Сегодня / Завтра / Весь список
+# функция обрабатывает навигацию по кнопкам Вывести список дел -> Сегодня / Завтра / Весь список
 def show_menu(message):
     date = message.text.lower()
     if date == 'весь список':
@@ -370,7 +403,7 @@ def show_menu(message):
     bot.send_message(message.chat.id, "Что дальше?", reply_markup=menu())
 
 
-#функция выводит список дат, на которые есть задачи, т.е. ключи нашего словаря
+# функция выводит список дат, на которые есть задачи, т.е. ключи нашего словаря
 @bot.message_handler(commands=["datelist"])
 def datelist(message):
     tasks = get_tasks(message.from_user.id)
@@ -382,7 +415,7 @@ def datelist(message):
     bot.send_message(message.chat.id, text)
 
 
-#функция выводит список дел на определённую дату
+# функция выводит список дел на определённую дату
 def show_date(message, date):
     tasks = get_tasks(message.from_user.id)
     if date in tasks:
@@ -397,7 +430,7 @@ def show_date(message, date):
     bot.send_message(message.chat.id, text)
 
 
-#обработчик команды /show <date> or /print <date> - вывести все задачи на заданную дату
+# обработчик команды /show <date> or /print <date> - вывести все задачи на заданную дату
 @bot.message_handler(commands=["show", "print"])
 def show(message):
     command = message.text.split(maxsplit=1)
@@ -408,7 +441,7 @@ def show(message):
         show_date(message, date)
 
 
-#вывод всех задач на все даты
+# вывод всех задач на все даты
 @bot.message_handler(commands=["showall"])
 def showall(message):
     text = ""
@@ -423,7 +456,7 @@ def showall(message):
     bot.send_message(message.chat.id, text)
 
 
-#функция обрабатывает навигацию по кнопкам Удалить задачу -> Сегодня / Завтра / Удалить всё / произвольный ввод с клавиатуры
+# функция обрабатывает навигацию по кнопкам Удалить задачу -> Сегодня / Завтра / Удалить всё
 def delete_menu(message):
     date = message.text.lower()
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -442,6 +475,7 @@ def delete_menu(message):
             btn_three = types.KeyboardButton("3")
             btn_all = types.KeyboardButton("Все")
             markup.add(btn_one, btn_two, btn_three, btn_all, row_width=4)
+            bot.register_next_step_handler(message, delete_task, date)
         else:
             text = "В расписании нет такой даты."
             btn_add = types.KeyboardButton("Добавить задачу")
@@ -452,9 +486,43 @@ def delete_menu(message):
     bot.send_message(message.chat.id, text, reply_markup=markup)
 
 
+#функция удаляет одну задачу из списка или все задачи на определённую дату
+def delete_task(message, date):
+    task = message.text
+    tasks = get_tasks(message.from_user.id)
+    rewrite = False
+    if task == 'Все':
+        tasks.pop(date)
+        rewrite = True
+        text = f"Дата {date.upper()} со всеми задачами удалена из расписания."
+    else:
+        task_list = tasks[date]
+        if task == '1' or task == '2' or task == '3':
+            if int(task) > len(task_list):
+                text = f"На дату {date.upper()} нет задачи с номером {task}."
+            else:
+                task_list.pop(int(task)-1)
+                rewrite = True
+                text = f"Задача номер {task} успешно удалена из списка {date.upper()}."
+        elif task in task_list:
+            task_list.remove(task)
+            rewrite = True
+            text = f"Задача успешно удалена из списка {date.upper()}."
+        else:
+            text = f"Такой задачи в списке {date.upper()} не найдено."
+        if task_list == []:
+            tasks.pop(date)
+            text += f"\nНа дату {date.upper()} не осталось задач. Дата удалена из расписания."
+        if rewrite and task_list != []:
+            tasks[date] = task_list
+    if rewrite:
+        write_tasks(message.from_user.id, tasks)
+    bot.send_message(message.chat.id, text, reply_markup=menu())
+
+
 # обработчик команды /delete <date> | <task> - удалить задачи на заданную дату
 @bot.message_handler(commands=["delete"])
-def delete_task(message):
+def delete(message):
     command = message.text.split(maxsplit=2)
     if len(command) < 2:
         text = "Вы не указали дату. Введите команду в формате\n/delete <date> | <task>"
@@ -496,20 +564,20 @@ def confirm_delete_all(message):
     if message.text == "Да,\nудалить всё":
         clearall(message)
     else:
-        bot.send_message(message.chat.id, "Ok.\nВозвращаюсь в главное меню:")
+        bot.send_message(message.chat.id, "Удаление отменено.\nВозвращаюсь в главное меню:")
     show_help(message)
 
 
-#очистить список задач
+# очистить список задач
 @bot.message_handler(commands=["clearall"])
 def clearall(message):
-    change_attr(message.from_user.id, 8, '{}')
+    change_attr(message.from_user.id, [8], ['{}'])
     bot.send_message(message.chat.id, "Список задач очищен.")
 
 
 @bot.message_handler(commands=["exit", "stop", "quit"])
 def stop(message):
-    change_line([str(message.from_user.id), '', '0', '0', '0', '0', '', '[]', '{}'])
+    change_line(message.from_user.id, make_line(message.from_user.id))
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button = types.KeyboardButton("Перезапустить")
     markup.add(button)
@@ -527,9 +595,14 @@ def play_games(message):
 
 @bot.message_handler(content_types=["text"])
 def echo(message):
-#если пользователь сейчас играет в К-Н-Б, то rounds > 0, а если играет в слова, то chances > 0
+# если пользователь сейчас играет в К-Н-Б, то rounds > 0, а если играет в слова, то chances > 0
     rounds = int(get_attr(message.from_user.id, 2))
     chances = int(get_attr(message.from_user.id, 5))
+    last_time = datetime.strptime(get_attr(message.from_user.id, 9), '%Y-%m-%d %H:%M:%S')
+# пользователю не разрешено отправлять сообщения чаще, чем раз в секунду (кнопки позволяют заспамить бота)
+    delta = datetime.now() - last_time
+    if delta.seconds < 1:
+        return
     if message.text == "Что ты умеешь?" or message.text.lower() == "помощь" or message.text == "Вернуться в меню":
         show_help(message)
     elif message.text == "Перезапустить":
@@ -568,7 +641,9 @@ def echo(message):
         btn_tommorrow = types.KeyboardButton("Завтра")
         btn_all = types.KeyboardButton("Весь список")
         btn_list = types.KeyboardButton("Вывести только даты")
-        markup.add(btn_today, btn_tommorrow, btn_all, btn_list)
+#        markup.add(btn_today, btn_tommorrow, btn_all, btn_list)
+        markup.add(btn_today, btn_tommorrow)
+        markup.add(btn_all, btn_list)
         bot.send_message(message.chat.id,
                          "Отобразить весь список или на определённую дату? Сделай выбор или напечатай:",
                          reply_markup=markup)
@@ -581,18 +656,11 @@ def echo(message):
         for letter in guessed:
             text += letter + " "
         text += "\nВведите букву:"
-        [change_attr(message.from_user.id, x, '0') for x in [2, 3, 4]]
-        change_attr(message.from_user.id, 5, str(chances))
-        change_attr(message.from_user.id, 6, word)
+        change_attr(message.from_user.id, [2, 3, 4, 5, 6], ['0', '0', '0', str(chances), word])
         write_guessed(message.from_user.id, guessed)
         bot.send_message(message.chat.id, text)
     elif message.text == "Камень-ножницы-\nбумага":
-        change_attr(message.from_user.id, 2, '1')
-        change_attr(message.from_user.id, 3, '0')
-        change_attr(message.from_user.id, 4, '0')
-        change_attr(message.from_user.id, 5, '0')
-        change_attr(message.from_user.id, 6, '')
-        write_guessed(message.from_user.id, '')
+        change_attr(message.from_user.id, [2, 3, 4, 5, 6, 7], ['1', '0', '0', '0', '', '[]'])
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         var1 = types.KeyboardButton("КАМЕНЬ")
         var2 = types.KeyboardButton("НОЖНИЦЫ")
@@ -602,7 +670,7 @@ def echo(message):
         bot.send_message(message.chat.id, text, reply_markup=markup)
     elif chances > 0:
         chances -= 1
-        change_attr(message.from_user.id, 5, str(chances))
+        change_attr(message.from_user.id, [5], [str(chances)])
         words(message)
         word = get_attr(message.from_user.id, 6)
         guessed = get_guessed(message.from_user.id)
@@ -614,27 +682,24 @@ def echo(message):
             bot.send_message(message.chat.id,
                              "Попытки закончились! Вы проиграли...\nБыло загадано слово: " + word.upper(),
                              reply_markup=markup)
-            change_attr(message.from_user.id, 5, '0')
-            change_attr(message.from_user.id, 6, '')
-            change_attr(message.from_user.id, 7, '[]')
+            change_attr(message.from_user.id, [5, 6, 7], ['0', '', '[]'])
         if guessed == list(word):
-            change_attr(message.from_user.id, 5, '0')
-            change_attr(message.from_user.id, 6, '')
-            change_attr(message.from_user.id, 7, '[]')
+            change_attr(message.from_user.id, [5, 6, 7], ['0', '', '[]'])
             bot.send_message(message.chat.id, "Поздравляем, Вы победили!\nБыло загадано слово: " + word.upper(),
                              reply_markup=markup)
     elif rounds > 0:
         stone(message)
+#        rounds, user_win, computer_win = list(map(get_attr, [message.from_user.id]*3, [2, 3, 4]))
         rounds, user_win, computer_win = [get_attr(message.from_user.id, i) for i in [2, 3, 4]]
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         but1 = types.KeyboardButton("Сыграть ещё")
         but2 = types.KeyboardButton("Вернуться в меню")
         markup.add(but1, but2)
         if user_win == '3':
-            [change_attr(message.from_user.id, x, '0') for x in [2, 3, 4]]
+            change_attr(message.from_user.id, [2, 3, 4], ['0', '0', '0'])
             bot.send_message(message.chat.id, "Поздравляем, Вы победили!", reply_markup=markup)
         elif computer_win == '3':
-            [change_attr(message.from_user.id, x, '0') for x in [2, 3, 4]]
+            change_attr(message.from_user.id, [2, 3, 4], ['0', '0', '0'])
             bot.send_message(message.chat.id, "К сожалению, Вы проиграли...", reply_markup=markup)
         else:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -649,4 +714,3 @@ def echo(message):
 
 
 bot.polling(none_stop=True)
-bot.infinity_polling()
