@@ -1,0 +1,74 @@
+{
+  "1771093713": {
+    "name": "Вика",
+    "rounds": 5,
+    "user_win": 2,
+    "computer_win": 1,
+    "chances": 0,
+    "word": "",
+    "guessed": [],
+    "tasks": {},
+    "timestamp": "2022-10-05 18:31:47"
+  },
+  "1771093719": {
+    "name": "Надежда",
+    "rounds": 0,
+    "user_win": 0,
+    "computer_win": 0,
+    "chances": 0,
+    "word": "",
+    "guessed": [],
+    "tasks": {
+      "завтра": [
+        "Встать пораньше",
+        "Записаться к врачу"
+      ],
+      "сегодня": [
+        "Пойти в бассейн",
+        "Почитать книгу",
+        "Купить хлеб"
+      ]
+    },
+    "timestamp": "2023-04-01 23:10:06"
+  },
+  "1103541031": {
+    "name": "Петя",
+    "rounds": 0,
+    "user_win": 0,
+    "computer_win": 0,
+    "chances": 4,
+    "word": "малина",
+    "guessed": [
+      "_",
+      "а",
+      "_",
+      "_",
+      "_",
+      "а"
+    ],
+    "tasks": {},
+    "timestamp": "2022-11-01 04:57:32;"
+  },
+  "1103541037": {
+    "name": "Илья",
+    "rounds": 0,
+    "user_win": 0,
+    "computer_win": 0,
+    "chances": 0,
+    "word": "",
+    "guessed": [],
+    "tasks": {},
+    "timestamp": "2022-11-05 01:57:57;"
+  },
+  "345114889": {
+    "name": "",
+    "rounds": 0,
+    "user_win": 0,
+    "computer_win": 0,
+    "chances": 0,
+    "word": "",
+    "guessed": [],
+    "tasks": {},
+    "timestamp": "2022-12-18 13:10:39"
+  }
+}
